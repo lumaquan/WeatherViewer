@@ -12,7 +12,7 @@
         android:contentDescription="@string/weather_condition_image"
         android:padding="10dp"
         android:scaleType="fitCenter"
-        android:src="@drawable/ic_done_black_24dp" />
+        android:src="@drawable/ic_done_white" />
 
     <GridLayout
         android:layout_width="0dp"
