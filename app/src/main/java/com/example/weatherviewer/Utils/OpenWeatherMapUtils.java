@@ -1,8 +1,8 @@
 package com.example.weatherviewer.Utils;
 
+import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
-import android.content.Context;
 
 import com.example.weatherviewer.R;
 import com.example.weatherviewer.Weather;
@@ -11,10 +11,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +38,7 @@ public class OpenWeatherMapUtils {
     private static final String APPID = "appid";
 
     public static List<Weather> extractForecast(JSONObject forecast) throws JSONException {
+        if(forecast == null) return null;
         JSONArray weatherDays = forecast.getJSONArray(LIST);
         List<Weather> weatherList = new ArrayList<>();
         for (int i = 0; i < weatherDays.length(); ++i) {

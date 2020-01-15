@@ -23,6 +23,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.weatherviewer.Utils.Clock;
 import com.example.weatherviewer.Utils.OpenWeatherMapUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -42,6 +43,7 @@ import java.util.InputMismatchException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
+import java.util.concurrent.Executor;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -59,7 +61,6 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         initialSetup();
-
         // experimenting();
     }
 
@@ -96,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected List<Weather> doInBackground(URL... urls) {
             HttpURLConnection connection = null;
+            String json = null;
+            Clock clock = new Clock();
             try {
                 connection = (HttpURLConnection) urls[0].openConnection();
                 int code = connection.getResponseCode();
@@ -109,14 +112,22 @@ public class MainActivity extends AppCompatActivity {
                     } catch (IOException e) {
                         Snackbar.make(coordinatorLayout, R.string.read_error, Snackbar.LENGTH_LONG).show();
                     }
-                    return OpenWeatherMapUtils.extractForecast(new JSONObject(builder.toString()));
+                    json = builder.toString();
                 } else {
                     Snackbar.make(coordinatorLayout, R.string.connect_error, Snackbar.LENGTH_LONG).show();
                 }
-            } catch (IOException | JSONException e) {
-                Snackbar.make(coordinatorLayout, R.string.connect_error, Snackbar.LENGTH_LONG).show();
+            } catch (IOException e) {
+                e.printStackTrace();
             } finally {
                 connection.disconnect();
+            }
+            Log.d(TAG, "doInBackground:decoding to Bitmap " + clock.getElapsedTimeMillis());
+            if (json != null) {
+                try {
+                    return OpenWeatherMapUtils.extractForecast(new JSONObject(json));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
             return null;
         }

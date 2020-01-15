@@ -15,6 +15,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.example.weatherviewer.Utils.Clock;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -25,7 +27,12 @@ import java.util.List;
 
 public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
 
+    /**
+     * This a memory cache holding images already decoded from internet
+     * Is a resource shared by the Main Thread and the worker thread that posts here
+     */
     private HashMap<String, Bitmap> bitmaps = new HashMap<>();
+    private static final String TAG = WeatherArrayAdapter.class.getSimpleName();
 
     public WeatherArrayAdapter(@NonNull Context context, List<Weather> forecast) {
         super(context, -1, forecast);
@@ -82,21 +89,32 @@ public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
 
         private ImageView mImageView;
 
-        public ImageDownloadTask(ImageView mImageView) {
+        ImageDownloadTask(ImageView mImageView) {
             this.mImageView = mImageView;
         }
 
+        /**
+         * All processing happens in a worker thread
+         * Opens a connection to a web service
+         * Reads al bytes and produces a Bitmap out of them
+         * Saves the bitmap in a HashMap for caching
+         *
+         * @param urls contains the url to connect to at position 0
+         * @return the bitmap decoded from the input stream
+         */
         @Override
         protected Bitmap doInBackground(String... urls) {
-
-            HttpURLConnection connection= null;
+            HttpURLConnection connection = null;
             InputStream inputStream = null;
             Bitmap bitmap;
+            Clock clock = new Clock();
             try {
+                clock.init();
                 URL url = new URL(urls[0]);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.connect();
                 inputStream = connection.getInputStream();
+                Log.d(TAG, "doInBackground: open connection an getting input stream  " + clock.getElapsedTimeMillis());
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -105,11 +123,18 @@ public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
                 if (connection != null)
                     connection.disconnect();
             }
+            clock.init();
             bitmap = BitmapFactory.decodeStream(inputStream);
+            Log.d(TAG, "doInBackground:decoding to Bitmap " + clock.getElapsedTimeMillis());
             bitmaps.put(urls[0], bitmap);
             return bitmap;
         }
 
+        /**
+         * Method executed in Main thread to update image
+         *
+         * @param bitmap to be set it into ImageView
+         */
         @Override
         protected void onPostExecute(Bitmap bitmap) {
             mImageView.setImageBitmap(bitmap);
