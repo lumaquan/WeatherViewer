@@ -4,8 +4,11 @@ import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
+import com.example.weatherviewer.DayWeather;
 import com.example.weatherviewer.R;
 import com.example.weatherviewer.Weather;
+import com.example.weatherviewer.WeatherNetwork;
+import com.example.weatherviewer.WeatherResponse;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -38,7 +41,7 @@ public class OpenWeatherMapUtils {
     private static final String APPID = "appid";
 
     public static List<Weather> extractForecast(JSONObject forecast) throws JSONException {
-        if(forecast == null) return null;
+        if (forecast == null) return null;
         JSONArray weatherDays = forecast.getJSONArray(LIST);
         List<Weather> weatherList = new ArrayList<>();
         for (int i = 0; i < weatherDays.length(); ++i) {
@@ -71,5 +74,16 @@ public class OpenWeatherMapUtils {
             Log.e(TAG, "createURL: " + e.getLocalizedMessage());
         }
         return null;
+    }
+
+    public static List<Weather> extractWeatherFromRetrofitResponse(WeatherResponse weatherResponse) {
+        List<Weather> forecast = new ArrayList<Weather>();
+        List<DayWeather> listofDays = weatherResponse.getList();
+        for (DayWeather dayWeather : listofDays) {
+            forecast.add(new Weather(dayWeather.getDeg(), dayWeather.getTemp().getMin(), dayWeather.getTemp().getMax(),
+                    dayWeather.getHumidity(), dayWeather.getWeather().get(0).getDescription(), dayWeather.getWeather().get(0).getIcon()));
+
+        }
+        return forecast;
     }
 }

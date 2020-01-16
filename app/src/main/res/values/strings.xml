@@ -12,4 +12,6 @@
     <string name="hint_text">Enter city (e.g, Boston, MA, US)</string>
     <string name="read_error">Unable to read weather data</string>
     <string name="connect_error">Unable to connect to OpenWeatherMap.org</string>
+    <string name ="server_error">Server is presenting some problems</string>
+    <string name="checkbox_retofit_text">retofit</string>
 </resources>

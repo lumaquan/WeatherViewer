@@ -6,6 +6,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 public class Weather {
+
     public final String dayOfWeek;
     public final String minTemp;
     public final String maxTemp;
@@ -16,7 +17,7 @@ public class Weather {
     public Weather(long timestamp, double minTemp, double maxTemp, double humidity, String description, String iconName) {
         NumberFormat numberFormat = NumberFormat.getInstance();
         numberFormat.setMaximumFractionDigits(0);
-        this.dayOfWeek = convertTimestamToDay(timestamp);
+        this.dayOfWeek = convertTimestampToDay(timestamp);
         this.minTemp = numberFormat.format(minTemp) + "\u00B0F";
         this.maxTemp = numberFormat.format(maxTemp) + "\u00B0F";
         this.humidity = NumberFormat.getPercentInstance().format(humidity / 100.0);
@@ -24,7 +25,7 @@ public class Weather {
         this.iconURL = "https://openweathermap.org/img/w/" + iconName + ".png";
     }
 
-    private static String convertTimestamToDay(long timestamp) {
+    private static String convertTimestampToDay(long timestamp) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(timestamp * 1000);
         TimeZone tz = TimeZone.getDefault();

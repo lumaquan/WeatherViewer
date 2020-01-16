@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -35,6 +36,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -46,6 +48,10 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.concurrent.Executor;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -54,7 +60,9 @@ public class MainActivity extends AppCompatActivity {
     private WeatherArrayAdapter weatherArrayAdapter;
     private ListView weatherForecast;
     private CoordinatorLayout coordinatorLayout;
+    private CheckBox checkBox;
     private Clock clock = new Clock();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private void initialSetup() {
         weatherForecast = findViewById(R.id.weatherForecast);
         coordinatorLayout = findViewById(R.id.coordinatorLayout);
+        checkBox = findViewById(R.id.checkbox);
         weatherArrayAdapter = new WeatherArrayAdapter(this, weatherList);
         weatherForecast.setAdapter(weatherArrayAdapter);
         FloatingActionButton fectchWeatherForcaset = findViewById(R.id.fab);
@@ -88,13 +97,46 @@ public class MainActivity extends AppCompatActivity {
             if (!TextUtils.isEmpty(cityNotEncoded)) {
                 URL url = OpenWeatherMapUtils.createURL(MainActivity.this, cityNotEncoded);
                 if (url != null) {
-                    new GetWeatherTask().execute(url);
+                    if (checkBox.isChecked()) {
+                        useRetrofit(cityNotEncoded);
+                    } else {
+                        new GetWeatherTask().execute(url);
+                    }
                 }
             } else {
                 Snackbar.make(coordinatorLayout, R.string.invalid_url, Snackbar.LENGTH_LONG).show();
             }
         }
     };
+
+    private void useRetrofit(String cityNotEncoded) {
+        long startToConnect = clock.getElapsedTimeMillis();
+        Call<WeatherResponse> call = ServiceManager.getOpenWeatherService()
+                .forecast16days(cityNotEncoded, getString(R.string.api_key));
+
+        call.enqueue(new Callback<WeatherResponse>() {
+            @Override
+            public void onResponse(Call<WeatherResponse> call, Response<WeatherResponse> response) {
+                Log.d(TAG, clock.messageElapsedTimeMillis("onResponse: ", startToConnect));
+                if (response.isSuccessful()) {
+                    if (response.body() != null) {
+                        List<Weather> forecast = OpenWeatherMapUtils.extractWeatherFromRetrofitResponse(response.body());
+                        updateUI(forecast);
+                    } else {
+                        Snackbar.make(coordinatorLayout, "Unable to get body", Snackbar.LENGTH_LONG).show();
+                    }
+                } else {
+                    Snackbar.make(coordinatorLayout, "Connection not successful", Snackbar.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<WeatherResponse> call, Throwable t) {
+                Snackbar.make(coordinatorLayout, R.string.connect_error, Snackbar.LENGTH_LONG).show();
+                Log.d(TAG, clock.messageElapsedTimeMillis("onResponse: ", startToConnect));
+            }
+        });
+    }
 
 
     private class GetWeatherTask extends AsyncTask<URL, Void, List<Weather>> {
@@ -107,24 +149,16 @@ public class MainActivity extends AppCompatActivity {
                 long startToConnect = clock.getElapsedTimeMillis();
                 connection = (HttpURLConnection) urls[0].openConnection();
                 int code = connection.getResponseCode();
+                showDetailsConnection(connection);
                 if (code == HttpURLConnection.HTTP_OK) {
-                    StringBuilder builder = new StringBuilder();
-                    try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                        String line;
-                        while ((line = br.readLine()) != null) {
-                            builder.append(line);
-                        }
-                        json = builder.toString();
-                        Log.d(TAG, clock.messageElapsedTimeMillis("doInBackground: tiem to read json: ", startToConnect));
-                    } catch (IOException e) {
-                        Snackbar.make(coordinatorLayout, R.string.read_error, Snackbar.LENGTH_LONG).show();
-                    }
+                    json = getJsonStringFromInputStream(connection.getInputStream());
+                    Log.d(TAG, clock.messageElapsedTimeMillis("doInBackground: time to read json: ", startToConnect));
                 } else {
                     Snackbar.make(coordinatorLayout, R.string.connect_error, Snackbar.LENGTH_LONG).show();
                     clock.messageElapsedTimeMillis("doInBackground: time to fetch: ", startToConnect);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                Snackbar.make(coordinatorLayout, R.string.connect_error, Snackbar.LENGTH_LONG).show();
             } finally {
                 connection.disconnect();
             }
@@ -141,13 +175,48 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
 
+        private void showDetailsConnection(HttpURLConnection connection) throws IOException {
+            Log.d(TAG, "doInBackground:response message: " + connection.getResponseMessage());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                Log.d(TAG, "doInBackground:content length: " + connection.getContentLengthLong());
+            }
+            Log.d(TAG, "doInBackground:last modified: " + connection.getLastModified());
+        }
+
+        private String getJsonStringFromInputStream(InputStream inputStream) throws IOException {
+            StringBuilder builder = new StringBuilder();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    builder.append(line);
+                }
+                return builder.toString();
+            }
+        }
+
+        private String getJsonStringFromInputStream2(InputStream inputStream) throws IOException {
+            StringBuilder builder = new StringBuilder();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    builder.append(line);
+                }
+                return builder.toString();
+            }
+        }
+
+
         @Override
         protected void onPostExecute(List<Weather> weather) {
-            weatherList.clear();
-            weatherList.addAll(weather);
-            weatherArrayAdapter.notifyDataSetChanged();
-            weatherForecast.smoothScrollToPosition(0);
+            updateUI(weather);
         }
+    }
+
+    private void updateUI(List<Weather> weather) {
+        weatherList.clear();
+        weatherList.addAll(weather);
+        weatherArrayAdapter.notifyDataSetChanged();
+        weatherForecast.smoothScrollToPosition(0);
     }
 
 
