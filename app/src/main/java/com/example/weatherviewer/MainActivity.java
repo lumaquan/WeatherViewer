@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Watchable;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.List;
@@ -53,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private WeatherArrayAdapter weatherArrayAdapter;
     private ListView weatherForecast;
     private CoordinatorLayout coordinatorLayout;
+    private Clock clock = new Clock();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +80,9 @@ public class MainActivity extends AppCompatActivity {
     private View.OnClickListener fetchWeatherListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            clock.init();
+            weatherArrayAdapter.restartClock();
+
             EditText locationEditText = findViewById(R.id.locationEditText);
             String cityNotEncoded = locationEditText.getText().toString();
             if (!TextUtils.isEmpty(cityNotEncoded)) {
@@ -98,8 +103,8 @@ public class MainActivity extends AppCompatActivity {
         protected List<Weather> doInBackground(URL... urls) {
             HttpURLConnection connection = null;
             String json = null;
-            Clock clock = new Clock();
             try {
+                long startToConnect = clock.getElapsedTimeMillis();
                 connection = (HttpURLConnection) urls[0].openConnection();
                 int code = connection.getResponseCode();
                 if (code == HttpURLConnection.HTTP_OK) {
@@ -109,22 +114,26 @@ public class MainActivity extends AppCompatActivity {
                         while ((line = br.readLine()) != null) {
                             builder.append(line);
                         }
+                        json = builder.toString();
+                        Log.d(TAG, clock.messageElapsedTimeMillis("doInBackground: tiem to read json: ", startToConnect));
                     } catch (IOException e) {
                         Snackbar.make(coordinatorLayout, R.string.read_error, Snackbar.LENGTH_LONG).show();
                     }
-                    json = builder.toString();
                 } else {
                     Snackbar.make(coordinatorLayout, R.string.connect_error, Snackbar.LENGTH_LONG).show();
+                    clock.messageElapsedTimeMillis("doInBackground: time to fetch: ", startToConnect);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
                 connection.disconnect();
             }
-            Log.d(TAG, "doInBackground:decoding to Bitmap " + clock.getElapsedTimeMillis());
             if (json != null) {
                 try {
-                    return OpenWeatherMapUtils.extractForecast(new JSONObject(json));
+                    long startToExtractWeather = clock.getElapsedTimeMillis();
+                    List<Weather> forecast = OpenWeatherMapUtils.extractForecast(new JSONObject(json));
+                    Log.d(TAG, clock.messageElapsedTimeMillis("doInBackground:time to extract forecast: ", startToExtractWeather));
+                    return forecast;
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }

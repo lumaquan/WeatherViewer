@@ -3,7 +3,9 @@ package com.example.weatherviewer;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.wifi.rtt.CivicLocationKeys;
 import android.os.AsyncTask;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,6 +27,8 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 
+import static android.os.AsyncTask.THREAD_POOL_EXECUTOR;
+
 public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
 
     /**
@@ -33,17 +37,22 @@ public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
      */
     private HashMap<String, Bitmap> bitmaps = new HashMap<>();
     private static final String TAG = WeatherArrayAdapter.class.getSimpleName();
+    private Clock clock = new Clock();
 
     public WeatherArrayAdapter(@NonNull Context context, List<Weather> forecast) {
         super(context, -1, forecast);
+        clock.init();
     }
 
     @NonNull
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+        Log.d(TAG, clock.messageElapsedTimeMillis("getView:called: "));
+        Log.d(TAG, "getView:current thread " + Thread.currentThread().getName());
         Weather weather = getItem(position);
         ViewHolder viewHolder;
         if (convertView == null) {
+            long startToBuildViewHolder = clock.getElapsedTimeMillis();
             viewHolder = new ViewHolder();
             convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item, parent, false);
             // Seaches views in the view hierarchy rooted at convertView
@@ -54,22 +63,22 @@ public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
             viewHolder.humidityTextView = convertView.findViewById(R.id.humidityTextView);
             // Attaches the view holder to the view
             convertView.setTag(viewHolder);
+            Log.d(TAG, clock.messageElapsedTimeMillis("getView: create holder, create view, bind views and set tag-holder to view: ", startToBuildViewHolder));
         } else {
             // Gets the holder which helps to bind data to views
             viewHolder = (ViewHolder) convertView.getTag();
         }
-
-        if (bitmaps.containsKey(weather.iconURL)) {
-            viewHolder.conditionImageView.setImageBitmap(bitmaps.get(weather.iconURL));
-        } else {
-            new ImageDownloadTask(viewHolder.conditionImageView).execute(weather.iconURL);
-        }
-
+        long startBinding = clock.getElapsedTimeMillis();
         viewHolder.bind(weather, getContext());
+        Log.d(TAG, clock.messageElapsedTimeMillis("getView: time to make binding: ", startBinding));
         return convertView;
     }
 
-    private static class ViewHolder {
+    public void restartClock() {
+        clock.init();
+    }
+
+    private class ViewHolder {
 
         private ImageView conditionImageView;
         private TextView dayTextView;
@@ -82,6 +91,12 @@ public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
             lowTextView.setText(context.getString(R.string.low_temp, weather.minTemp));
             hiTextView.setText(context.getString(R.string.high_temp, weather.maxTemp));
             humidityTextView.setText(context.getString(R.string.humidity, weather.humidity));
+            if (bitmaps.containsKey(weather.iconURL)) {
+                conditionImageView.setImageBitmap(bitmaps.get(weather.iconURL));
+            } else {
+                Log.d(TAG, clock.messageElapsedTimeMillis("bind: abut to download image "));
+                new ImageDownloadTask(conditionImageView).executeOnExecutor(THREAD_POOL_EXECUTOR, weather.iconURL);
+            }
         }
     }
 
@@ -103,18 +118,18 @@ public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
          * @return the bitmap decoded from the input stream
          */
         @Override
-        protected Bitmap doInBackground(String... urls) {
+        protected synchronized Bitmap doInBackground(String... urls) {
             HttpURLConnection connection = null;
             InputStream inputStream = null;
             Bitmap bitmap;
-            Clock clock = new Clock();
+            Log.d(TAG, "doInBackground: thread: " + Thread.currentThread().getName());
             try {
-                clock.init();
+                long startGettingInputstream = clock.getElapsedTimeMillis();
                 URL url = new URL(urls[0]);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.connect();
                 inputStream = connection.getInputStream();
-                Log.d(TAG, "doInBackground: open connection an getting input stream  " + clock.getElapsedTimeMillis());
+                Log.d(TAG, clock.messageElapsedTimeMillis("doInBackground: time to get input stream: ", startGettingInputstream));
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -123,9 +138,8 @@ public class WeatherArrayAdapter extends ArrayAdapter<Weather> {
                 if (connection != null)
                     connection.disconnect();
             }
-            clock.init();
             bitmap = BitmapFactory.decodeStream(inputStream);
-            Log.d(TAG, "doInBackground:decoding to Bitmap " + clock.getElapsedTimeMillis());
+            Log.d(TAG, clock.messageElapsedTimeMillis("doInBackground:put in map "));
             bitmaps.put(urls[0], bitmap);
             return bitmap;
         }

@@ -20,5 +20,13 @@ public class Clock {
         }
     }
 
+    public String messageElapsedTimeMillis(String message){
+        return message + getElapsedTimeMillis() +  " ms";
+    }
+
+    public String messageElapsedTimeMillis(String message, long newOrigin){
+        return message + (getElapsedTimeMillis()- newOrigin) +  " ms";
+    }
+
 
 }
