@@ -1,4 +1,4 @@
-package com.example.weatherviewer;
+package com.example.weatherviewer.open_weather_map;
 
 
 import com.google.gson.annotations.SerializedName;

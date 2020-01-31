@@ -1,14 +1,8 @@
-package com.example.weatherviewer;
+package com.example.weatherviewer.open_weather_map;
 
 import com.google.gson.annotations.SerializedName;
 
-public class Temp{
-
-	@SerializedName("min")
-	private double min;
-
-	@SerializedName("max")
-	private double max;
+public class FeelsLike{
 
 	@SerializedName("eve")
 	private double eve;
@@ -21,22 +15,6 @@ public class Temp{
 
 	@SerializedName("morn")
 	private double morn;
-
-	public void setMin(double min){
-		this.min = min;
-	}
-
-	public double getMin(){
-		return min;
-	}
-
-	public void setMax(double max){
-		this.max = max;
-	}
-
-	public double getMax(){
-		return max;
-	}
 
 	public void setEve(double eve){
 		this.eve = eve;
@@ -73,10 +51,8 @@ public class Temp{
 	@Override
  	public String toString(){
 		return 
-			"Temp{" + 
-			"min = '" + min + '\'' + 
-			",max = '" + max + '\'' + 
-			",eve = '" + eve + '\'' + 
+			"FeelsLike{" + 
+			"eve = '" + eve + '\'' + 
 			",night = '" + night + '\'' + 
 			",day = '" + day + '\'' + 
 			",morn = '" + morn + '\'' + 

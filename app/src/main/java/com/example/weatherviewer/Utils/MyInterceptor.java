@@ -1,4 +1,4 @@
-package com.example.weatherviewer;
+package com.example.weatherviewer.Utils;
 
 import android.util.Log;
 
@@ -8,7 +8,9 @@ import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public  class MyInterceptor implements Interceptor {
+public class MyInterceptor implements Interceptor {
+
+    private int delayTime = 0;
 
     @Override
     public Response intercept(Chain chain) throws IOException {
@@ -19,7 +21,7 @@ public  class MyInterceptor implements Interceptor {
         Log.d("retrofit", "intercept: writeTimeout -> " + chain.writeTimeoutMillis());
 
         try {
-            Thread.sleep(2000);
+            Thread.sleep(delayTime);
         } catch (InterruptedException e) {
             e.printStackTrace();
             Log.d("retrofit", "intercept: Ive got interrupted");
@@ -42,7 +44,7 @@ public  class MyInterceptor implements Interceptor {
         Response response = null;
         try {
             response = chain.proceed(request);
-        }catch (Exception e){
+        } catch (Exception e) {
             Log.d("retrofit", "intercept: " + e.getMessage());
         }
 

@@ -1,5 +1,8 @@
 package com.example.weatherviewer;
 
+import com.example.weatherviewer.Utils.MyInterceptor;
+import com.example.weatherviewer.open_weather_map.OpenWeatherMapApi;
+import com.example.weatherviewer.json_placeholder.JsonPlaceholderAPI;
 import com.facebook.stetho.okhttp3.StethoInterceptor;
 
 import okhttp3.OkHttpClient;
@@ -8,16 +11,17 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ServiceManager {
 
-    private static OpenWeatherMapApi service;
+    private static OpenWeatherMapApi openWeatherMapApi;
+    private static JsonPlaceholderAPI jsonPlaceholderAPI;
     private static Object lock = new Object();
 
     private ServiceManager() {
     }
 
     public static OpenWeatherMapApi getOpenWeatherService() {
-        if (service == null) {
+        if (openWeatherMapApi == null) {
             synchronized (lock) {
-                service = new Retrofit.Builder()
+                openWeatherMapApi = new Retrofit.Builder()
                         .baseUrl(OpenWeatherMapApi.OPEN_WEATHER_BASE)
                         .client(getClient())
                         .addConverterFactory(GsonConverterFactory.create())
@@ -25,7 +29,20 @@ public class ServiceManager {
                         .create(OpenWeatherMapApi.class);
             }
         }
-        return service;
+        return openWeatherMapApi;
+    }
+
+    public static JsonPlaceholderAPI getJsonPlaceholderClient() {
+        if (jsonPlaceholderAPI == null) {
+            synchronized (lock) {
+                jsonPlaceholderAPI = new Retrofit.Builder()
+                        .addConverterFactory(GsonConverterFactory.create())
+                        .client(getClient())
+                        .baseUrl(JsonPlaceholderAPI.BASE_URL)
+                        .build().create(JsonPlaceholderAPI.class);
+            }
+        }
+        return jsonPlaceholderAPI;
     }
 
     private static OkHttpClient getClient() {

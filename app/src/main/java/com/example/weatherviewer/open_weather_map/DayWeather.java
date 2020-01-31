@@ -1,6 +1,7 @@
-package com.example.weatherviewer;
+package com.example.weatherviewer.open_weather_map;
 
 import java.util.List;
+
 import com.google.gson.annotations.SerializedName;
 
 public class DayWeather {

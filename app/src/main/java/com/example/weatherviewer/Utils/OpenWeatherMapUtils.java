@@ -4,11 +4,10 @@ import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
-import com.example.weatherviewer.DayWeather;
+import com.example.weatherviewer.open_weather_map.DayWeather;
 import com.example.weatherviewer.R;
-import com.example.weatherviewer.Weather;
-import com.example.weatherviewer.WeatherNetwork;
-import com.example.weatherviewer.WeatherResponse;
+import com.example.weatherviewer.open_weather_map.Weather;
+import com.example.weatherviewer.open_weather_map.WeatherResponse;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -77,12 +76,11 @@ public class OpenWeatherMapUtils {
     }
 
     public static List<Weather> extractWeatherFromRetrofitResponse(WeatherResponse weatherResponse) {
-        List<Weather> forecast = new ArrayList<Weather>();
+        List<Weather> forecast = new ArrayList<>();
         List<DayWeather> listofDays = weatherResponse.getList();
         for (DayWeather dayWeather : listofDays) {
             forecast.add(new Weather(dayWeather.getDeg(), dayWeather.getTemp().getMin(), dayWeather.getTemp().getMax(),
                     dayWeather.getHumidity(), dayWeather.getWeather().get(0).getDescription(), dayWeather.getWeather().get(0).getIcon()));
-
         }
         return forecast;
     }
